@@ -137,7 +137,7 @@ def run(mode, X,y, num_epochs = 20, batch_size = 16, num_folds = 5):
   best_fold_model = []
 
   for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
-      model, _ = reload_model(mode)
+      model, _ = reload_model(mode,X,y)
 
       model = model.to(device)      
       optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)    
