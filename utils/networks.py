@@ -20,14 +20,12 @@ class TabularNet(nn.Module):
         x = self.batchn1(x)        
         x = self.relu(x)
         x = self.dropout(x)
-
-        x = self.fc2(x)
-        x = self.batchn2(x)        
-        x = self.relu(x)
-        x = self.dropout(x)
-
         if self.mode:
-          x = self.output(x)
+            x = self.fc2(x)
+            x = self.batchn2(x)        
+            x = self.relu(x)
+            x = self.dropout(x)        
+            x = self.output(x)
         return x
 
 class ImgNet(nn.Module):
@@ -36,15 +34,13 @@ class ImgNet(nn.Module):
         self.mode = net_mode
         efficientnet = models.efficientnet_v2_s(pretrained=True)
         self.features = nn.Sequential(*list(efficientnet.children())[:-1]) #Output: 1280
-        self.pooling = nn.AdaptiveAvgPool2d((1, 1))
+        
         if self.mode:
           self.tabular_net = TabularNet(num_features = 1280 , net_mode = 1)
 
 
-    def forward(self, x):
-        
-        x = self.features(x)
-        x = self.pooling(x)
+    def forward(self, x):        
+        x = self.features(x)        
         x = x.view(x.size(0), -1)
         if self.mode:
           x = self.tabular_net(x)        
@@ -59,7 +55,7 @@ class EnsembleNet(nn.Module):
         self.image_net = ImgNet() #Returns 1280
         self.relu = nn.ReLU()
                
-        self.fc1 = nn.Linear(1408, 512)
+        self.fc1 = nn.Linear(1792, 512)
         
         self.output = nn.Linear(512, 1)
         self.dropout = nn.Dropout(0.2)
