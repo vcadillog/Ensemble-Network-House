@@ -114,15 +114,15 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 
-def run(mode, X,y, num_epochs = 20):
+def run(mode, X,y, num_epochs = 20, batch_size = 16, num_folds = 5):
   
   assert mode in ['meta','image','ensemble']
   
   
   # Define the number of epochs and number of folds for cross validation
   seed = 42
-  num_folds = 5
-  batch_size = 16
+  num_folds = num_folds
+  batch_size = batch_size
   set_seed(seed)
   criterion = nn.MSELoss()
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
