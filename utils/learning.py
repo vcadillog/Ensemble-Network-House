@@ -123,8 +123,7 @@ def run(mode, X,y, num_epochs = 20, batch_size = 32, num_folds = 5):
   # Define the number of epochs and number of folds for cross validation
   seed = 42
   num_folds = num_folds
-  batch_size = batch_size
-  set_seed(seed)
+  batch_size = batch_size  
   criterion = nn.MSELoss()
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   # Initialize Weight and Biases
