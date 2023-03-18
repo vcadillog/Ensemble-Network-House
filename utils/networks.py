@@ -6,12 +6,12 @@ class TabularNet(nn.Module):
     def __init__(self, num_features, net_mode = 0):
         super(TabularNet, self).__init__()
         self.mode = net_mode
-        self.batchn1 = nn.BatchNorm1d(128)
-        self.batchn2 = nn.BatchNorm1d(32)        
+        self.batchn1 = nn.BatchNorm1d(320)
+        self.batchn2 = nn.BatchNorm1d(80)        
         
-        self.fc1 = nn.Linear(num_features, 128)
-        self.fc2 = nn.Linear(128, 32)        
-        self.output = nn.Linear(32, 1)
+        self.fc1 = nn.Linear(num_features, 320)
+        self.fc2 = nn.Linear(320, 80)        
+        self.output = nn.Linear(80, 1)
         self.dropout = nn.Dropout(0.2)
         self.relu = nn.ReLU()
 
@@ -34,13 +34,13 @@ class ImgNet(nn.Module):
     def __init__(self, net_mode = 0):
         super(ImgNet, self).__init__()
         
-        resnet = models.resnet18(pretrained=True)
-        self.features = nn.Sequential(*list(resnet.children())[:-1])
+        efficientnet = models.efficientnet_v2_s(pretrained=True)
+        self.features = nn.Sequential(*list(efficientnet.children())[:-1]) #Output: 1280
         self.pooling = nn.AdaptiveAvgPool2d((1, 1))
         if net_mode:
-          self.tabular_net = TabularNet(num_features = 512 , net_mode = 1)
+          self.tabular_net = TabularNet(num_features = 1280 , net_mode = 1)
         else:
-          self.tabular_net = TabularNet(num_features = 512)
+          self.tabular_net = TabularNet(num_features = 1280)
 
     def forward(self, x):
         
@@ -54,14 +54,14 @@ class EnsembleNet(nn.Module):
     def __init__(self, tabular_num_features):
         super(EnsembleNet, self).__init__()
         
-        self.tabular_net = TabularNet(tabular_num_features) #Returns 64
+        self.tabular_net = TabularNet(tabular_num_features) #Returns 80
 
-        self.image_net = ImgNet() #Returns 64
+        self.image_net = ImgNet() #Returns 80
         self.relu = nn.ReLU()
-        self.batchn1 = nn.BatchNorm1d(64)        
-        self.fc1 = nn.Linear(64, 32)
-        self.batchn2 = nn.BatchNorm1d(32)        
-        self.output = nn.Linear(32, 1)
+        self.batchn1 = nn.BatchNorm1d(160)        
+        self.fc1 = nn.Linear(160, 40)
+        self.batchn2 = nn.BatchNorm1d(40)        
+        self.output = nn.Linear(40, 1)
         self.dropout = nn.Dropout(0.2)
 
     def forward(self, x_tabular, x_image):
