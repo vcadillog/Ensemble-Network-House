@@ -8,8 +8,7 @@ from torch.utils.data import Dataset
 
 
 
-class CustomDataset(Dataset):
-    # def __init__(self, meta,img,y):
+class CustomDataset(Dataset):    
     def __init__(self, mode, meta = None, y = None,dir_path = None, transform = None):
       
         assert mode in ['meta','image','ensemble']
