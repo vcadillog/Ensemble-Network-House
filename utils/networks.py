@@ -13,18 +13,20 @@ class TabularNet(nn.Module):
         self.fc2 = nn.Linear(512, 128)        
         self.output = nn.Linear(128, 1)
         self.dropout = nn.Dropout(0.2)
-        self.relu = nn.ReLU()
+        
+        self.silu = nn.SiLU()
 
     def forward(self, x):        
         x = self.fc1(x)
         x = self.batchn1(x)        
-        x = self.relu(x)
+        x = self.silu(x)
         x = self.dropout(x)
-        if self.mode:
-            x = self.fc2(x)
-            x = self.batchn2(x)        
-            x = self.relu(x)
-            x = self.dropout(x)        
+        x = self.fc2(x)
+        x = self.batchn2(x)        
+        x = self.silu(x)
+        
+        if self.mode:        
+            x = self.dropout(x)
             x = self.output(x)
         return x
 
@@ -53,20 +55,15 @@ class EnsembleNet(nn.Module):
         self.tabular_net = TabularNet(tabular_num_features) #Returns 128
 
         self.image_net = ImgNet() #Returns 1280
-        self.relu = nn.ReLU()
-               
-        self.fc1 = nn.Linear(1792, 512)
-        
-        self.output = nn.Linear(512, 1)
-        self.dropout = nn.Dropout(0.2)
+   
+        self.output = nn.Linear(1408, 1)
+        self.dropout = nn.Dropout(0.5)
 
     def forward(self, x_tabular, x_image):
         x_tabular = self.tabular_net(x_tabular)
         x_image = self.image_net(x_image)
         x = torch.cat((x_tabular,x_image), dim=1)
-       
-        x = self.fc1(x)          
-        x = self.relu(x)
+
         x = self.dropout(x)        
         x = self.output(x)
         return x
