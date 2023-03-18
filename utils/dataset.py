@@ -18,7 +18,7 @@ class CustomDataset(Dataset):
       
         if meta is not None and mode != 'image':
           self.meta = meta
-        # self.img = img
+        
         
         if dir_path is not None and mode !='meta':
           self.dir_path = dir_path
