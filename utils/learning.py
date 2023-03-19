@@ -10,11 +10,12 @@ from dataset import CustomDataset
 from networks import EnsembleNet, ImgNet,TabularNet
 from torchvision.transforms import ToTensor, Compose, Resize,Normalize
 
-data_transforms =  Compose([                 
-                          Resize([100,100]),                          
-                          ToTensor(),
-                          Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225])
-                          ])   
+def data_transforms(size=100):
+  return Compose([                 
+                  Resize([size,size]),                          
+                  ToTensor(),
+                  Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225])
+                  ])   
 
 def set_seed(seed):
   torch.manual_seed(seed)
@@ -97,15 +98,15 @@ def eval_model(mode,model,device,criterion,val_loader):
                           
     return val_loss
 
-def reload_model(mode,X,y):
+def reload_model(mode,X,y,size=100):
   if mode == 'ensemble':
-    dataset = CustomDataset(mode=mode,meta = X,dir_path = './Houses-dataset/Houses Dataset', y = y, transform= data_transforms)
+    dataset = CustomDataset(mode=mode,meta = X,dir_path = './Houses-dataset/Houses Dataset', y = y, transform= data_transforms(size))
     model = EnsembleNet(tabular_num_features=X.shape[1])
   elif mode == 'meta':
     dataset = CustomDataset(mode=mode,meta = X, y = y)
     model = TabularNet(num_features=X.shape[1]  , net_mode = 1)
   else:
-    dataset = CustomDataset(mode=mode,dir_path = './Houses-dataset/Houses Dataset', y = y, transform= data_transforms)
+    dataset = CustomDataset(mode=mode,dir_path = './Houses-dataset/Houses Dataset', y = y, transform= data_transforms(size))
     model = ImgNet( net_mode = 1)  
   return model, dataset
 
@@ -115,7 +116,7 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 
-def run(mode, X,y, num_epochs = 20, batch_size = 32, num_folds = 5):
+def run(mode, X,y, num_epochs = 20, batch_size = 32, num_folds = 5,img_size = 100):
   
   assert mode in ['meta','image','ensemble']
   
@@ -131,7 +132,7 @@ def run(mode, X,y, num_epochs = 20, batch_size = 32, num_folds = 5):
 
   # Perform cross validation
   kf = KFold(n_splits=num_folds)
-  _ , dataset = reload_model(mode,X,y)
+  _ , dataset = reload_model(mode,X,y,img_size)
 
   best_fold_loss = []
   best_fold_model = []
@@ -139,7 +140,7 @@ def run(mode, X,y, num_epochs = 20, batch_size = 32, num_folds = 5):
   
 
   for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
-      model, _ = reload_model(mode,X,y)
+      model, _ = reload_model(mode,X,y,img_size)
 
       model = model.to(device)      
       optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4 , weight_decay=0.1)    
