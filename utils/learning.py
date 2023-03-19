@@ -5,7 +5,7 @@ import wandb
 import torch.nn as nn
 
 from sklearn.model_selection import KFold
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader,random_split
 from dataset import CustomDataset
 from networks import EnsembleNet, ImgNet,TabularNet
 from torchvision.transforms import ToTensor, Compose, Resize,Normalize
@@ -115,6 +115,67 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
+def fold_training(mode, model,device,num_folds,criterion,seed, dataset,batch_size,num_epochs,fold = None,train_idx = None,val_idx = None):
+  model = model.to(device)      
+  optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4 , weight_decay=0.1)    
+
+  g = torch.Generator()
+  g.manual_seed(seed)
+
+  if num_folds>1:
+    print(f'Fold {fold + 1}')
+  # Define the training and validation data loaders for the current fold
+    train_data = torch.utils.data.Subset(dataset, train_idx)
+    val_data = torch.utils.data.Subset(dataset, val_idx)
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True , worker_init_fn=seed_worker, generator=g)
+    val_loader = DataLoader(val_data, batch_size=batch_size,shuffle=True, worker_init_fn=seed_worker, generator=g)
+
+  else:
+    dataset_size = len(dataset)
+    train_size = int(0.7 * dataset_size)
+    val_size = dataset_size - train_size
+
+    train_data, val_data = random_split(dataset, [train_size, val_size])
+
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True , worker_init_fn=seed_worker, generator=g)
+    val_loader = DataLoader(val_data, batch_size=batch_size,shuffle=True, worker_init_fn=seed_worker, generator=g)     
+  # Initialize variables for logging and tracking best model
+  best_loss = float('inf')
+  best_model = None
+
+  # Train the model for the current fold
+
+  for epoch in range(num_epochs):
+
+
+      model,optimizer,train_loss  = epoch_train(mode,model,device,optimizer,criterion,train_loader)
+      val_loss = eval_model(mode,model,device,criterion,val_loader)             
+
+      train_loss = np.mean(train_loss)
+      val_loss = np.mean(val_loss)
+      if num_folds > 1:
+        wandb.log({'Train loss': train_loss,
+                  'Validation Loss': val_loss,
+                  'Epoch': epoch+1,
+                  'Fold': fold+1
+                  }) 
+
+      else:
+        wandb.log({'Train loss': train_loss,
+                  'Validation Loss': val_loss,
+                  'Epoch': epoch+1                  
+                  }) 
+
+
+      print(f'Epoch {epoch + 1}: train_loss={train_loss:.4f}, val_loss={val_loss:.4f}')
+      # Save best model
+      if val_loss < best_loss:
+          best_loss = val_loss              
+          best_model = model.state_dict()
+
+
+  return best_loss, best_model
+
 
 def run(mode, X,y, num_epochs = 20, batch_size = 32, num_folds = 5,img_size = 100):
   
@@ -131,65 +192,28 @@ def run(mode, X,y, num_epochs = 20, batch_size = 32, num_folds = 5,img_size = 10
   wandb.init(project='House')  
 
   # Perform cross validation
-  kf = KFold(n_splits=num_folds)
-  _ , dataset = reload_model(mode,X,y,img_size)
+  
+  
+  model , dataset = reload_model(mode,X,y,img_size)
 
   best_fold_loss = []
   best_fold_model = []
 
   
-
-  for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
-      model, _ = reload_model(mode,X,y,img_size)
-
-      model = model.to(device)      
-      optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4 , weight_decay=0.1)    
-
-      print(f'Fold {fold + 1}')
-
-      # Define the training and validation data loaders for the current fold
-
-      g = torch.Generator()
-      g.manual_seed(seed)
-
-      train_data = torch.utils.data.Subset(dataset, train_idx)
-      val_data = torch.utils.data.Subset(dataset, val_idx)
-      train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True , worker_init_fn=seed_worker, generator=g)
-      val_loader = DataLoader(val_data, batch_size=batch_size,shuffle=True, worker_init_fn=seed_worker, generator=g)
-
-      # Initialize variables for logging and tracking best model
-      best_loss = float('inf')
+  if num_folds>1:
+    kf = KFold(n_splits=num_folds)  
+    for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
       
-      best_model = None
-
-      # Train the model for the current fold
-
-      for epoch in range(num_epochs):
-
-
-          model,optimizer,train_loss  = epoch_train(mode,model,device,optimizer,criterion,train_loader)
-          val_loss = eval_model(mode,model,device,criterion,val_loader)             
-
-          train_loss = np.mean(train_loss)
-          val_loss = np.mean(val_loss)
-          wandb.log({'Train loss': train_loss,
-                     'Validation Loss': val_loss,
-                     'Epoch': epoch+1,
-                     'Fold': fold+1
-                     }) 
-
-
-          print(f'Epoch {epoch + 1}: train_loss={train_loss:.4f}, val_loss={val_loss:.4f}')
-          # Save best model
-          if val_loss < best_loss:
-              best_loss = val_loss              
-              best_model = model.state_dict()
-      
+      best_loss, best_model = fold_training(mode, model,device,num_folds,criterion,seed, dataset,batch_size,num_epochs,fold,train_idx ,val_idx)                             
+                              
       best_fold_loss.append(best_loss)
       best_fold_model.append(best_model)
+    
+    best_idx = np.argmin(best_fold_loss)  
+    best_model = best_fold_model[best_idx]
+    torch.save(best_model, f'best_kfold_{num_folds}_{mode}_model.pt')            
 
 
-      # Save best model after each fold
-  best_idx = np.argmin(best_fold_loss)  
-  best_model = best_fold_model[best_idx]
-  torch.save(best_model, f'best_{mode}_model.pt')
+  else: 
+    _, best_model = fold_training(mode, model,device,num_folds,criterion,seed, dataset,batch_size,num_epochs)                              
+    torch.save(best_model, f'best_{mode}_model.pt')    
