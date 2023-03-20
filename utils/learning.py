@@ -10,12 +10,19 @@ from dataset import CustomDataset
 from networks import EnsembleNet, ImgNet,TabularNet
 from torchvision.transforms import ToTensor, Compose, Resize,Normalize
 
-def data_transforms(size=100):
-  return Compose([                 
+
+def data_transforms(size=100,visualize=False):
+  if visualize:
+    return Compose([                 
                   Resize([size,size]),                          
-                  ToTensor(),
-                  Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225])
+                  ToTensor()                                    
                   ])   
+  else:    
+    return Compose([                 
+                  Resize([size,size]),                          
+                  ToTensor(),                  
+                  Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225])
+                  ])
 
 def set_seed(seed):
   torch.manual_seed(seed)
