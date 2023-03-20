@@ -10,6 +10,17 @@ The code contains 3 neural networks in the utils/networks module to predict cost
 
 This work also contains saved models trained in KFolds with 5 folds and no folds but longer epochs.
 
+Every house has associated 4 images for: The front, kitchen, bedroom and bathroom.
+
+The images has been taken as a patch and combined into a bigger image:
+
+<img src="https://github.com/vcadillog/Ensemble-Network-House/blob/main/images/preprocess.png" />
+
+And then was normalized following the EfficientNet V2 paper:
+
+<img src="https://github.com/vcadillog/Ensemble-Network-House/blob/main/images/normalized_img.png" />
+
+
 The log data can be visualized in W&B project: [URL](https://wandb.ai/vcadillo/House?workspace=user-vcadillo)
 Additionally you can found in the chart a training loop for a lower batch size (16) has not generalized well.
 
