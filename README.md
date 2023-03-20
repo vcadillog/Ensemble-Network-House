@@ -5,7 +5,7 @@ To use the code download the jupyter notebook in your local machine or in Google
 
 The code contains 3 neural networks in the utils/networks module to predict cost price of a house:
 1. Network with Fully connected layers to make a regression with metadata.
-2. Network with Convolutional layers to make a regression with image data
+2. Network with Convolutional layers to make a regression with image data, the convolutional model consist of an EfficientNet_v2_s.
 3. Network with an Ensemble model of fully connected and convolutional network to combine metadata and images of the associated house.
 
 This work also contains saved models trained in KFolds with 5 folds and no folds but longer epochs.
