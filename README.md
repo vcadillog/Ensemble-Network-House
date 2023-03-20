@@ -19,7 +19,7 @@ Training Loss with no KFold training:
 
 Validation Loss with no KFold training:
 
-<img src=https://github.com/vcadillog/Ensemble-Network-House/blob/main/images/Validation_loss.png" width="505" height="265"/>
+<img src="https://github.com/vcadillog/Ensemble-Network-House/blob/main/images/Validation_loss.png" width="505" height="265"/>
 
 Training Loss trained in 5 folds.
 
